@@ -1,0 +1,253 @@
+Section 1 Analisis Database Design
+    #Analysis Entity or table
+    menentukan entity dan tabel apa saja yang dibutuhkan untuk pembuatan project crowdfunding di bagian backend
+    users yang membuat sebuah campaign dinamakan campainers dan selain membuat campaign, users juga bisa melakukan funding dan disebut users beker
+    entity itu yang bisa digambarkan seperti benda(kata benda)
+    entity yang sudah didapat
+        ~ users
+        ~ campaign
+        ~ campaign Images
+        ~ Transactions
+
+    #Analysis ERD   
+    ERD digunakan untuk mengambarkan relasi antar tabel dan field https://erdplus.com/
+    cardinality sebuah hubungan atau batasan
+        Entity
+            #Users
+            #Campaign
+            #Campaign Images
+            #Transactions
+        kardinalitas
+        kardinalitas Users {mandatory,one} (create) {optional,Many} campaign 
+            1.1 User bisa membuat banyak campaign (many)
+            1.2 user juga bisa tidak membuat sebuah campaign(optional)
+            2.1 sebuah campaign harus memiliki sebuah user (mandatory)
+            2.2 sebuah campaign wajib dibuat oleh user(one)
+        kardinalitas campaign{mandatory,} (has) {mandatory,Many} campaign images
+            1.1 sebuah campaign dapat memiliki banyak gambar (mandatory)
+            1.2 sebuah campaign wajib memiliki gambar minimal 1 (Many)
+            2.1 Campaign Images harus punya campaign(mandatory)
+            2.2 Campaign Images hanya bisa dimiliki sepesific campaign (one)
+        kardinalitas Users{mandatory,one} (Has) {optional,many}Transactions
+            1.1 sebuah user tidak wajib memiliki Transactions (optional)
+            1.2 sebuah user bisa memiliki banyak Transactions (many)
+            2.1 sebuah Transactions hanya bisa dimiliki oleh seorang user (mandatory)
+            2.2 sebuah Transactions hanya hanya dibuat satu users(one)
+        kardinalitas Transactions{optional,Many} (has) {mandatory,one}Campaign
+            1.1 sebuah Transactions harus memiliki sebuah campaign(mandatory)
+            1.2 sebuah Transactions hanya bisa memiliki satu Transactions(one)
+            2.1 sebuah campaign tidak wajib memiliki Transactions(optional)
+            2.2 sebuah campaign bisa memiliki banyak Transactions(many)
+
+    #analisis field di Tabel Users
+    Entity
+            #Users
+                *id : int
+                *name : varchar
+                *occupation : varchar
+                *email : varchar
+                *password_hash : varchar
+                *avatar_file_name : varchar
+                *role : varchar
+                *token :varchar
+                *created_at: datetime
+                *update_at : datetime
+                 terkadang ada sebuah requirements yang tidak bisa kita tangkap hanya dari UI Design, contohnya adalah aplikasi yang mempunyai seorang admin dan user biasa (role)
+                 jadi user dan admin itulah pentingnya analisis mendalam dan pengalaman. karena kita akan membuat api, jadi api butuh tau yang nembak statenya itu user siapa?
+                 yang sedang login jadi nanti frontend(vuejs) perlu mengirim token ke server(api) jadi server tapi siapa user yang melakukan request, jadi kita butuh sebuah token
+                 jadi ada tambahan baru diusers yaitu role & token
+                 terkahir ada 2 yang tidak kehilatan tapi ini sudah menjadi praktik umum (best practice) dari sebuah databases desain yaitu kita membuat 2 buah kolom baru yaitu created_at dan update_at
+                 artinya ini menandakan bahwa kapan sih sebuah record dibuat dan diupdate
+
+        #analisis field di Tabel Campaign
+        Entity
+            #Campaign
+                *id : int
+                *user_id: int (fk)
+                *name: varchar
+                *short_description: varchar
+                *desctiption :text
+                *goal_amount: int
+                *current_amount: int
+                *perks: text
+                *slug: varchar
+                *backer_count: int
+                *created_at: datetime
+                *update_at: datetime
+                 perks memecah kalimat dengan koma (tonton ulang)
+                 slug adalah sebuah identifier sebuah campaign 
+                 backer_count sebuah user yang memberikan dana
+
+
+        #analisis field di Tabel Campaign Images
+        Entity
+            #Campaign Images
+                *id: int
+                *campaign_id: id(fk)
+                *file_name: varchar
+                *is_primary: boolean{tinyint}
+                *created_at: datetime
+                *update_at: datetime
+                 1 campaign bisa banyak gambar, primary images yang akan dijadikan cover didalam card
+                 tinyint digunakan karena didatabase tidak ada boolean, maka dari itu untuk menandai dengan cara tinyint 0 adalah false dan 1 adalah true jadi jika gambar primary yang akan dimunculkan di card
+        
+        #analisis field di Tabel Transactions
+        Entity
+            #Transactions
+                *id: int
+                *campaign_id: int (fk)
+                *user_id: int(fk)
+                *amount: int
+                *status: varchar
+                *code :varchar
+                *created_at: datetime
+                *update_at: datetime
+                 Transactions punya relasi ke user dan campaign
+                 status untuk melihat kondisi state udh bayar apa belum
+                 code adalah sebuah kode transaksi ketika melakukan proses pembayaran
+
+Section 2 Fundamental go
+    #init Project and install gin & gorm
+        gin digunakan untuk membuat sebuah http framework  https://github.com/gin-gonic/gin
+        gorm digunakan untuk database akses https://gorm.io/index.html
+        #setup gin
+            go get -u github.com/gin-gonic/gin
+        #setup gorm
+            go get -u gorm.io/gorm
+            go get -u gorm.io/driver/mysql #tentukan drivernya yang ingin digunakan misal /driver/sqllite /drive/postgresql
+        #Gorm Connection to db
+            tambahkan scripts berikut ini kedalam crowdfunding/main.go
+            package main
+
+                import (
+                    "fmt"
+                    "log"
+
+                    "gorm.io/driver/mysql"
+                    "gorm.io/gorm"
+                )
+                func main() {
+                    // refer https://github.com/go-sql-driver/mysql#dsn-data-source-name for details
+                    // dsn := "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
+                    // db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+                    // isi databases sesuai dengan username password dan namadatabase yang sudah dibuat
+                    dsn := "root:@tcp(127.0.0.1:3306)/crowdfunding?charset=utf8mb4&parseTime=True&loc=Local"
+                    _, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+                    if err != nil {
+                        log.Fatal(err.Error())
+                    }
+                    fmt.Println("connection to databases is good")
+                }
+
+        #Gorm get Table Data in databases
+        kita akan coba mengambil nilai didalam table users
+        untuk menampung sebuah nilai / beberapa nilai dan kemudian untuk dimuat digolang kita perlu membuat sebuah struct
+        bentuk struct mirip dengan kolom databases
+            #Create folder Users
+            untuk menampung file" yang terkait dengan users yang berhubungan dengan servicesnya yang mengandung bisnis logicnya
+            untuk struktur folder digolang bebas gak kaku seperti ruby on rails/laravel
+            #create entity.go didalam crowdfunding/user
+                karena didalam package user kita tuliskan package user
+                untuk memuat data yang ada didalam tabel user kita perlu membuat struct yang fieldnya/propertinya sama dengan tabel database
+                jika kamu menggunakan ORM, kamu perlu bikin model yang mempresentasikan sebuah tabel yang ada di database
+                gunakan Singular ketika membuat struct karena didatabase plural
+            #create scripts entity.go
+                package user
+
+                import "time"
+
+                type User struct {
+                    ID             int
+                    Name           string
+                    Email          string
+                    PasswordHash   string
+                    AvatarFileName string
+                    Role           string
+                    CreatedAt      time.Time
+                    UpdateAt       time.Time
+                }
+            #Load data in database using Gorm
+            karena kita sudah buat tabel user, bagaimana cara kita meloadnya? balik ke main.go
+            tanda (_) yang ada dibaris ini	_, err := gorm.Open(mysql.Open(dsn), &gorm.Config{}) diganti dengan (db)
+            disinilah kita bisa menampilkan data ditabel user dengan cara buat variabel user
+                    var users []user.User 
+                    db.Find(&users) 
+                    length := len(users)
+                    fmt.Print(length)
+                    // pada dasarnya nilai struct itu array kemudian kita looping saja menggunakan for
+                    for _, user := range users {
+                        fmt.Println("======mengakses semua nilai")
+                        fmt.Println(user) //mengakses dan mengambil semua nilai dari users
+                        fmt.Println("======mengakses nilai satu persatu")
+                        fmt.Println(user.ID) //mengakses dan mengambil nilai berdasarkan field(mengambil nilai satu")
+                        fmt.Println(user.AvatarFileName)
+                        fmt.Println(user.CreatedAt)
+                        fmt.Println(user.Email)
+                        fmt.Println(user.Name)
+                    }
+           #dan inilah scripts full dari main.go
+                package main
+
+                import (
+                    "crowndfunding/user"
+                    "fmt"
+                    "log"
+
+                    "gorm.io/driver/mysql"
+                    "gorm.io/gorm"
+                )
+
+                func main() {
+
+                    dsn := "root:@tcp(127.0.0.1:3306)/crowdfunding?charset=utf8mb4&parseTime=True&loc=Local"
+                    db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+                    if err != nil {
+                        log.Fatal(err.Error())
+                    }
+                    fmt.Println("connection to databases is good")
+                    var users []user.User //artinya kita buat sebuah vari	bel yang bernama user tipenya adalah array of User yang dimana User ini adalah entity dari struct (user/entity.go) yang mewakili tabel user yang ada didalam database
+                    //kemudian kita manfaatkan variabel db sebagai koneksi kita kedalam database mysql
+                    db.Find(&users) //dengan cerdas gorm akan tahu kita memasukan users dengan tipe harus pointer(&) yang dimana user adalah entity struct Users
+                    //jadi secara default jika kita mempunyai sebuah struct dengan nama User maka dia akan terkoneksi dengan tabel yang namanya users
+                    // melalui proses db.Find(&users) kita akan looping yang tadinya nilainya sebelumnya adalah empty array dengan kita pake proses db.Find(&users) sekarang users sudah ada nilainya
+                    length := len(users)
+                    fmt.Print(length)
+                    //setelah itu jalankan dengan perintah go run main.go kemudian output yang dihasilkan adalah 2 karena fungsi len() adalah menghitung jumlah baris data yang ada
+
+                    //bedah kode
+                    /* cara pertama untuk mengetahui apakah kita berhasil mengakses data didalam databses
+                    kita cek data yang ada didatabases sebelum melakukan db.Find(users)
+                    var users []user.User
+                    length := len(users)
+                    fmt.Print(length)
+                    db.Find(&users)
+                    outputnya adalah 0 karena nilai sebelumnya  kita buat sebuah variabel empty array dan kita melakukan print isi databases sebelum perintah db.Find(&users)
+                    */
+
+                    /* cara kedua kita membuat empty array kosong dan memasukan data didalam variabel db dan divariabel db kita mencari sebuah nilai di dalam database menggunakan Find()
+                    dan memasukan nilai dari struct yang sudah dibuat yaitu empty kosong users dan kita buat variabel baru denga tipe data len() kemudian kita print()
+                    var users []user.User
+                    db.Find(&users)
+                    length := len(users)
+                    fmt.Print(length)
+                    hasilnya 2 karena kita mencetak nilai dari databases sebelum db.Find(&users)
+                    */
+                    // cara menampilkan datanya
+                    // pada dasarnya nilai struct itu array kemudian kita looping saja menggunakan for
+                    for _, user := range users {
+                        fmt.Println("======mengakses semua nilai")
+                        fmt.Println(user) //mengakses dan mengambil semua nilai dari users
+                        fmt.Println("======mengakses nilai satu persatu")
+                        fmt.Println(user.ID) //mengakses dan mengambil nilai berdasarkan field(mengambil nilai satu")
+                        fmt.Println(user.AvatarFileName)
+                        fmt.Println(user.CreatedAt)
+                        fmt.Println(user.Email)
+                        fmt.Println(user.Name)
+
+                    }
+                }
+
+
+

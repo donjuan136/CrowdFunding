@@ -1,0 +1,96 @@
+Section 2
+    #init project and install gin&gorm
+        create new folder crowdfunding and jump inside
+        go mod init crowdfunding
+        export databases crowdfunding.sql in webserver XAMPP
+        create new database crowdfunding and export database crowdfunding.sql
+    #setup gin
+        go get -u github.com/gin-gonic/gin
+    #setup gorm
+        go get -u gorm.io/gorm
+        go get -u gorm.io/driver/mysql
+    #Gorm Connection to db
+    ##create main.go inside folder crowdfunding adding this scripts
+            package main
+            import (
+                "fmt"
+                "log"
+
+                "gorm.io/driver/mysql"
+                "gorm.io/gorm"
+            )
+
+            func main() {
+                dsn := "root:@tcp(127.0.0.1:3306)/crowdfunding?charset=utf8mb4&parseTime=True&loc=Local"
+                _, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+                if err != nil {
+                    log.Fatal(err.Error())
+                }
+                fmt.Println("connection to databases is good")
+            }
+
+    ##Gorm get Table Data in databases
+        Create Folder users/entity.go and added this scripts
+            package user
+                    import "time"
+
+                    type User struct {
+                        ID             int
+                        Name           string
+                        Email          string
+                        PasswordHash   string
+                        AvatarFileName string
+                        Role           string
+                        CreatedAt      time.Time
+                        UpdateAt       time.Time
+                    }
+
+    ##Gorm Acess and Show data
+        added this scripts to main.go
+        package main
+
+        import (
+            "crowndfunding/user"
+            "fmt"
+            "log"
+
+            "gorm.io/driver/mysql"
+            "gorm.io/gorm"
+        )
+
+        func main() {
+
+            dsn := "root:@tcp(127.0.0.1:3306)/crowdfunding?charset=utf8mb4&parseTime=True&loc=Local"
+            db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+            if err != nil {
+                log.Fatal(err.Error())
+            }
+            fmt.Println("connection to databases is good")
+            var users []user.User
+            db.Find(&users)
+            length := len(users)
+            fmt.Print(length)
+
+            for _, user := range users {
+                fmt.Println("======mengakses semua nilai")
+                fmt.Println(user)
+                fmt.Println("======mengakses nilai satu persatu")
+                fmt.Println(user.ID)
+                fmt.Println(user.AvatarFileName)
+                fmt.Println(user.CreatedAt)
+                fmt.Println(user.Email)
+                fmt.Println(user.Name)
+
+            }
+        }
+
+
+
+
+
+
+
+#Section Command Golang
+    go mod init name_file
+    go run main.go
