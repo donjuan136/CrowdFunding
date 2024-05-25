@@ -86,6 +86,13 @@ Section 2
         }
 
 
+#Section github 
+    git init
+    git add .
+    git commit -m "your commit message"
+    git remote add origin https://github.com/donjuan136/CrowdFunding.git
+    git branch -M main
+    git push -u origin main
 
 
 
